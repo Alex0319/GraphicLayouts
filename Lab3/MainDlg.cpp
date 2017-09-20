@@ -50,10 +50,6 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 
 
-// диалоговое окно CMainDlg
-
-
-
 CMainDlg::CMainDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_LAB3_DIALOG, pParent)
 {
@@ -63,6 +59,7 @@ CMainDlg::CMainDlg(CWnd* pParent /*=NULL*/)
 void CMainDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_DRAWING_AREA, m_PictureControl);
 }
 
 BEGIN_MESSAGE_MAP(CMainDlg, CDialogEx)
@@ -72,9 +69,10 @@ BEGIN_MESSAGE_MAP(CMainDlg, CDialogEx)
 //	ON_STN_CLICKED(IDC_DRAWING_AREA, &CMainDlg::OnStnClickedDrawingArea)
 ON_COMMAND(ID_ABOUT, &CMainDlg::OnAbout)
 ON_WM_DESTROY()
-ON_COMMAND(ID_ADDSHAPE, &CMainDlg::OnAddshape)
+ON_COMMAND(ID_ADDSHAPE, &CMainDlg::OnAddShape)
 ON_WM_LBUTTONDOWN()
 ON_WM_LBUTTONUP()
+ON_WM_MOUSEMOVE()
 END_MESSAGE_MAP()
 
 
@@ -100,26 +98,16 @@ BOOL CMainDlg::OnInitDialog()
 
 	// TODO: добавьте дополнительную инициализацию
 
-	shapesManager = new ShapesManager();
-
+	shapesManager = new ShapesManager(IDB_TURN);
 	return TRUE;  // возврат значения TRUE, если фокус не передан элементу управления
 }
 
-//void CMainDlg::OnSysCommand(UINT nID, LPARAM lParam)
-//{
-//	CDialogEx::OnSysCommand(nID, lParam);
-//}
-
-// При добавлении кнопки свертывания в диалоговое окно нужно воспользоваться приведенным ниже кодом,
-//  чтобы нарисовать значок.  Для приложений MFC, использующих модель документов или представлений,
-//  это автоматически выполняется рабочей областью.
-
 void CMainDlg::OnPaint()
 {
-	CPaintDC dc(this); // контекст устройства для рисования
 
 	if (IsIconic())
 	{
+		CPaintDC dc(this); // контекст устройства для рисования
 		SendMessage(WM_ICONERASEBKGND, reinterpret_cast<WPARAM>(dc.GetSafeHdc()), 0);
 
 		// Выравнивание значка по центру клиентского прямоугольника
@@ -134,23 +122,68 @@ void CMainDlg::OnPaint()
 		dc.DrawIcon(x, y, m_hIcon);
 	}
 	else
-	{
-		shapesManager->Draw(&dc);
-		CDialogEx::OnPaint();
-	}
+		Draw();
 }
 
-// Система вызывает эту функцию для получения отображения курсора при перемещении
-//  свернутого окна.
-//HCURSOR CMainDlg::OnQueryDragIcon()
-//{
-//	return static_cast<HCURSOR>(m_hIcon);
-//}
-
-
-void CMainDlg::OnAddshape()
+void CMainDlg::OnAddShape()
 {
-	// TODO: Add your command handler code here
+	vertexes.push_back({ 20, 40 });
+	vertexes.push_back({ 60, 60 });
+	vertexes.push_back({ 10, 80 });
+	shapesManager->AddShape(vertexes);
+	vertexes.clear();
+
+	vertexes.push_back({ 80, 90 });
+	vertexes.push_back({ 150, 90 });
+	vertexes.push_back({ 150, 150 });
+	vertexes.push_back({ 80, 150 });
+	shapesManager->AddShape(vertexes);
+	vertexes.clear();
+	InvalidateRect(NULL, false);
+}
+
+void CMainDlg::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	if (shapesManager->CheckShapeSelect(point)) {
+		currentPoint = new CPoint(point);
+		isNothingSelect = false;
+		InvalidateRect(NULL, FALSE);
+	}
+	else if (!isNothingSelect)
+	{
+		isNothingSelect = true;
+		InvalidateRect(NULL, FALSE);
+	}
+ 
+	CDialogEx::OnLButtonDown(nFlags, point);
+}
+
+
+void CMainDlg::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	if (currentPoint != NULL || prevPoint != NULL) 
+	{
+		DeletePoint(&currentPoint);
+		DeletePoint(&prevPoint);
+		InvalidateRect(NULL, FALSE);
+	}
+	
+	CDialogEx::OnLButtonUp(nFlags, point);
+}
+
+
+void CMainDlg::OnMouseMove(UINT nFlags, CPoint point)
+{
+	if (currentPoint != NULL)
+	{
+		if (prevPoint != NULL)
+			delete prevPoint;
+		prevPoint = currentPoint;
+		currentPoint = new CPoint(point);
+		shapesManager->ChangeSelectShapePosition({ currentPoint->x - prevPoint->x, currentPoint->y - prevPoint->y});
+		InvalidateRect(FALSE, NULL);
+	}
+	CDialogEx::OnMouseMove(nFlags, point);
 }
 
 void CMainDlg::OnAbout()
@@ -162,7 +195,33 @@ void CMainDlg::OnAbout()
 void CMainDlg::OnDestroy()
 {
 	delete shapesManager;
+	vertexes.clear();
+	std::vector<POINT>().swap(vertexes);
 	CDialogEx::OnDestroy();
+}
+
+void CMainDlg::Draw()
+{
+	CPaintDC dc(&m_PictureControl);
+	CDC compatibleDC;
+	CRect rect;
+	CBitmap bitmap;
+
+	GetClientRect(rect);
+	bitmap.CreateCompatibleBitmap(&dc, rect.Width(), rect.Height());
+	compatibleDC.CreateCompatibleDC(&dc);
+	CBitmap* oldBitmap = compatibleDC.SelectObject(&bitmap);
+
+	compatibleDC.FillRect(rect, WHITE_BRUSH);
+	shapesManager->Draw(&compatibleDC);
+	dc.BitBlt(0, 0, rect.Width(), rect.Height(), &compatibleDC, 0, 0, SRCCOPY);
+
+	shapesManager->DrawTurnIcon(&dc);
+	compatibleDC.SelectObject(oldBitmap);
+	
+	bitmap.DeleteObject();
+	compatibleDC.DeleteDC();
+	CDialogEx::OnPaint();
 }
 
 void CMainDlg::ChangeMenuItemCaption(int menuItemId, int stringId)
@@ -173,17 +232,8 @@ void CMainDlg::ChangeMenuItemCaption(int menuItemId, int stringId)
 	mainMenu->ModifyMenuW(menuItemId, MF_BYCOMMAND, menuItemId, str);
 }
 
-void CMainDlg::OnLButtonDown(UINT nFlags, CPoint point)
+void CMainDlg::DeletePoint(CPoint** point)
 {
-	// TODO: Add your message handler code here and/or call default
-
-	CDialogEx::OnLButtonDown(nFlags, point);
-}
-
-
-void CMainDlg::OnLButtonUp(UINT nFlags, CPoint point)
-{
-	// TODO: Add your message handler code here and/or call default
-
-	CDialogEx::OnLButtonUp(nFlags, point);
+	delete *point;
+	*point = NULL;
 }

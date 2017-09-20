@@ -187,8 +187,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CMainApp.h" />
+    <ClInclude Include="ImagePainter.h" />
     <ClInclude Include="MainDlg.h" />
-    <ClInclude Include="Polygon.h" />
+    <ClInclude Include="PolygonShape.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Shape.h" />
     <ClInclude Include="ShapesManager.h" />
@@ -197,8 +198,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CMainApp.cpp" />
+    <ClCompile Include="ImagePainter.cpp" />
     <ClCompile Include="MainDlg.cpp" />
-    <ClCompile Include="Polygon.cpp" />
+    <ClCompile Include="PolygonShape.cpp" />
     <ClCompile Include="Shape.cpp" />
     <ClCompile Include="ShapesManager.cpp" />
     <ClCompile Include="stdafx.cpp">
@@ -215,7 +217,9 @@
     <None Include="res\Lab3.rc2" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\..\..\..\..\..\Загрузки\1505601088.png" />
     <Image Include="res\Lab3.ico" />
+    <Image Include="res\png1.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
