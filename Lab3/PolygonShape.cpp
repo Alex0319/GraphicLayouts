@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "PolygonShape.h"
 
-
 PolygonShape::PolygonShape()
 {
 }

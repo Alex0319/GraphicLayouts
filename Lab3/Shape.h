@@ -15,6 +15,7 @@ class Shape
 		CRect GetShapeRect();
 protected:
 		std::vector<POINT> vertexes;
+		std::vector<POINT> startVertexes;
 		std::vector<POINT> points;
 		std::vector<int> vertexDistances;
 		CRgn region;

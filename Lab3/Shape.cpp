@@ -11,6 +11,7 @@ Shape::Shape()
 Shape::Shape(std::vector<POINT> vertexes)
 {
 	this->vertexes = vertexes;
+	startVertexes = vertexes;
 	shapeLayoutNumber = layoutNumber++;
 	CalculateDistancesBetweenVertexes();
 }
@@ -22,6 +23,7 @@ Shape::~Shape()
 	vertexDistances.clear();
 	ClearVector(&vertexes);
 	ClearVector(&points);
+	ClearVector(&startVertexes);
 }
 
 void Shape::ClearVector(std::vector<POINT>* vector)
@@ -54,6 +56,7 @@ void Shape::OffsetCoordinates(POINT offset)
 	centerX = -1;
 	Offset(&points, offset);
 	Offset(&vertexes, offset);
+	startVertexes = vertexes;
 	region.OffsetRgn(offset);
 }
 
@@ -79,34 +82,40 @@ int Shape::GetDistance(POINT x1, POINT x2)
 
 void Shape::TurnCoordinates(POINT point)
 {
-	CRect rect;
-	ClearVector(&points);
-	region.GetRgnBox(&rect);
-	if(centerX <= 0)
+	const int height = 5;
+	if (point.x > height || point.x < -height)
+		point.x %= height;
+
+	float angle = asin((float)(point.x) / height);
+	if (angle < 0.0001 && angle > -0.0001)
 	{
-		centerX = rect.left + rect.Width() / 2;
-		centerY = rect.top + rect.Height() / 2;
+		vertexes = startVertexes;
+		CalculatePoints(vertexes);
 	}
-
-	if (point.x > 5 || point.x < -5)
-		point.x %= 5;
-	float angle = asin((float)(point.x) / 5);
-
-	for (auto i = 0; i < vertexes.size(); i++)
+	else
 	{
-		POINT newPoint;
-		newPoint.x = centerX + (vertexes[i].x - centerX)  * cos(angle) - (vertexes[i].y - centerY) * sin(angle);
-		newPoint.y = centerY + (vertexes[i].x - centerX) * sin(angle) + (vertexes[i].y - centerY) * cos(angle);
-		if (i != 0)
+		CRect rect = GetShapeRect();
+		if (centerX <= 0)
 		{
-			std::vector<POINT> linePoints = ÑoordinateAdjustment(&vertexes[i - 1], &newPoint, vertexDistances[i - 1]);
-			points.insert(points.end(), linePoints.begin(), linePoints.end());
+			centerX = rect.left + rect.Width() / 2;
+			centerY = rect.top + rect.Height() / 2;
 		}
-		vertexes[i] = newPoint;
+		ClearVector(&points);
+		for (auto i = 0; i < vertexes.size(); i++)
+		{
+			POINT newPoint;
+			newPoint.x = centerX + (vertexes[i].x - centerX)  * cos(angle) - (vertexes[i].y - centerY) * sin(angle);
+			newPoint.y = centerY + (vertexes[i].x - centerX) * sin(angle) + (vertexes[i].y - centerY) * cos(angle);
+			if (i != 0)
+			{
+				std::vector<POINT> linePoints = ÑoordinateAdjustment(&vertexes[i - 1], &newPoint, vertexDistances[i - 1]);
+				points.insert(points.end(), linePoints.begin(), linePoints.end());
+			}
+			vertexes[i] = newPoint;
+		}
+		std::vector<POINT> linePoints = ÑoordinateAdjustment(&vertexes[vertexes.size() - 1], &vertexes[0], vertexDistances[vertexDistances.size() - 1]);
+		points.insert(points.end(), linePoints.begin(), linePoints.end());
 	}
-	std::vector<POINT> linePoints = ÑoordinateAdjustment(&vertexes[vertexes.size() - 1], &vertexes[0], vertexDistances[vertexDistances.size() - 1]);
-	points.insert(points.end(), linePoints.begin(), linePoints.end());
-
 	region.DeleteObject();
 	region.CreatePolygonRgn(&points[0], points.size(), ALTERNATE);
 }
