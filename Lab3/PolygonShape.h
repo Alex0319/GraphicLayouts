@@ -8,7 +8,7 @@ class PolygonShape : public Shape
 		~PolygonShape();
 	protected:
 		void CalculatePoints(std::vector<POINT>);
-		virtual std::vector<POINT> ÑoordinateAdjustment(POINT*, POINT*, int);
+		std::vector<POINT> ÑoordinateAdjustment(POINT*, POINT*, int);
 		std::vector<POINT> GetLinePoints(POINT, POINT, int = 0);
 	private:
 		bool PolygonShape::CheckDistance(int, int);

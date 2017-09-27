@@ -7,6 +7,7 @@ class ImagePainter
 		void LoadImageFromResourceWithTransparency(UINT, COLORREF);
 		void DrawTransparentBitmap(CDC* pDC, int xStart, int yStart, int xSource = 0, int ySource = 0);
 		bool IsPointInImageRegion(CPoint);
+		BITMAP GetImageInfo();
 	private:
 		CBitmap image, imageMask;
 		BITMAP imageInfo;

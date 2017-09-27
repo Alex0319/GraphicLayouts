@@ -5,25 +5,43 @@ int Shape::layoutNumber = 0;
 
 Shape::Shape()
 {
-	shapeLayoutNumber = layoutNumber++;
+	InitShapeProperties();
 }
 
 Shape::Shape(std::vector<POINT> vertexes)
 {
 	this->vertexes = vertexes;
 	startVertexes = vertexes;
-	shapeLayoutNumber = layoutNumber++;
+	InitShapeProperties();
 	CalculateDistancesBetweenVertexes();
 }
 
 Shape::~Shape()
 {
-	DeleteObject(region);
+	region.DeleteObject();
 	layoutNumber--;
 	vertexDistances.clear();
 	ClearVector(&vertexes);
 	ClearVector(&points);
 	ClearVector(&startVertexes);
+}
+
+void Shape::InitShapeProperties()
+{
+	shapeLayoutNumber = layoutNumber++;
+	switch (rand() % 5)
+	{
+		case 0: color = RED;
+			break;
+		case 1: color = YELLOW;
+			break;
+		case 2: color = ORANGE;
+			break;
+		case 3: color = GREEN;
+			break;
+		case 4: color = BLUE;
+			break;
+	}
 }
 
 void Shape::ClearVector(std::vector<POINT>* vector)
@@ -53,11 +71,11 @@ bool Shape::CheckPointInRegion(POINT point)
 
 void Shape::OffsetCoordinates(POINT offset)
 {
-	centerX = -1;
 	Offset(&points, offset);
 	Offset(&vertexes, offset);
 	startVertexes = vertexes;
 	region.OffsetRgn(offset);
+	shapeCenterPoint = GetShapeRect().CenterPoint();
 }
 
 void Shape::Offset(std::vector<POINT>* vectorPtr, POINT offset)
@@ -66,6 +84,15 @@ void Shape::Offset(std::vector<POINT>* vectorPtr, POINT offset)
 	{
 		(*vectorPtr)[i].x = (*vectorPtr)[i].x + offset.x;
 		(*vectorPtr)[i].y = (*vectorPtr)[i].y + offset.y;
+	}
+}
+
+void Shape::ZoomCoordinates(std::vector<POINT>* points, float zoom)
+{
+	for (int i = 0; i < points->size(); i++)
+	{
+		(*points)[i].x = (*points)[i].x * zoom + shapeCenterPoint.x * (1 - zoom);
+		(*points)[i].y = (*points)[i].y * zoom + shapeCenterPoint.y * (1 - zoom);
 	}
 }
 
@@ -80,6 +107,24 @@ int Shape::GetDistance(POINT x1, POINT x2)
 	return pow(x2.x - x1.x, 2) + pow(x2.y - x1.y, 2);
 }
 
+void Shape::ChangeZoom(float changeValue)
+{
+	if (((zoom * changeValue) <= 4) && ((zoom * changeValue) >= 0.25))
+	{
+		zoom *= changeValue;
+		ZoomCoordinates(&vertexes, changeValue);
+		ZoomCoordinates(&startVertexes, changeValue);
+		for (int i = 0; i < vertexDistances.size(); i++)
+		{
+			vertexDistances[i] *= changeValue;
+			vertexDistances[i] *= changeValue;
+		}
+		CalculatePoints(vertexes);
+		region.DeleteObject();
+		region.CreatePolygonRgn(&points[0], points.size(), ALTERNATE);
+	}
+}
+
 void Shape::TurnCoordinates(POINT point)
 {
 	const int height = 5;
@@ -87,25 +132,19 @@ void Shape::TurnCoordinates(POINT point)
 		point.x %= height;
 
 	float angle = asin((float)(point.x) / height);
-	if (angle < 0.0001 && angle > -0.0001)
+	if (angle < 0.01 && angle > -0.01)
 	{
 		vertexes = startVertexes;
 		CalculatePoints(vertexes);
 	}
 	else
 	{
-		CRect rect = GetShapeRect();
-		if (centerX <= 0)
-		{
-			centerX = rect.left + rect.Width() / 2;
-			centerY = rect.top + rect.Height() / 2;
-		}
 		ClearVector(&points);
 		for (auto i = 0; i < vertexes.size(); i++)
 		{
 			POINT newPoint;
-			newPoint.x = centerX + (vertexes[i].x - centerX)  * cos(angle) - (vertexes[i].y - centerY) * sin(angle);
-			newPoint.y = centerY + (vertexes[i].x - centerX) * sin(angle) + (vertexes[i].y - centerY) * cos(angle);
+			newPoint.x = shapeCenterPoint.x + (vertexes[i].x - shapeCenterPoint.x)  * cos(angle) - (vertexes[i].y - shapeCenterPoint.y) * sin(angle);
+			newPoint.y = shapeCenterPoint.y + (vertexes[i].x - shapeCenterPoint.x) * sin(angle) + (vertexes[i].y - shapeCenterPoint.y) * cos(angle);
 			if (i != 0)
 			{
 				std::vector<POINT> linePoints = ÑoordinateAdjustment(&vertexes[i - 1], &newPoint, vertexDistances[i - 1]);
@@ -120,15 +159,18 @@ void Shape::TurnCoordinates(POINT point)
 	region.CreatePolygonRgn(&points[0], points.size(), ALTERNATE);
 }
 
-void Shape::Draw(CDC* dc, std::vector<Shape*> shapes)
+void Shape::Draw(CDC* dc, std::vector<Shape*> shapes, CRgn* drawingAreaRgn, int penWidth)
 {
 	bool drawingState = true, currentDrawingState = true;
+	CPen pen(PS_SOLID, penWidth, color);
+	CPen* oldPen = dc->SelectObject(&pen);
+	
 	dc->MoveTo(points[0]);
 	for (auto i = 1; i < points.size(); i++)
 	{
 		for (auto j = 0; j < shapes.size(); j++)
 		{
-			if (shapes[j]->GetLayoutNumber() > shapeLayoutNumber && shapes[j]->CheckPointInRegion(points[i]))
+			if ((shapes[j]->GetLayoutNumber() > shapeLayoutNumber && shapes[j]->CheckPointInRegion(points[i])) || !drawingAreaRgn->PtInRegion(points[i]))
 			{
 				if (i % 3 == 0)
 				{
@@ -146,4 +188,6 @@ void Shape::Draw(CDC* dc, std::vector<Shape*> shapes)
 		drawingState = true;
 	}
 	dc->LineTo(points[0]);
+	dc->SelectObject(oldPen);
+	pen.DeleteObject();
 }

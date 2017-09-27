@@ -135,11 +135,8 @@ void ImagePainter::DrawTransparentBitmap(CDC* pDC, int xStart, int yStart, int x
 	CBitmap* hbmT = hdcMem.SelectObject(&imageMask);
 	CBitmap* oldBitmap = pTmpDC.SelectObject(&image);
 
-	xStart -= imageInfo.bmWidth / 2;
-	yStart -= imageInfo.bmHeight + 5;
-
-	pDC->BitBlt(xStart, yStart, imageInfo.bmWidth, imageInfo.bmHeight, &hdcMem, xSource, ySource, SRCAND);
-	pDC->BitBlt(xStart, yStart, imageInfo.bmWidth, imageInfo.bmHeight, &pTmpDC, xSource, ySource, SRCPAINT);
+	pDC->BitBlt(0, 0, imageInfo.bmWidth, imageInfo.bmHeight, &hdcMem, xSource, ySource, SRCAND);
+	pDC->BitBlt(0, 0, imageInfo.bmWidth, imageInfo.bmHeight, &pTmpDC, xSource, ySource, SRCPAINT);
 
 	hdcMem.SelectObject(hbmT);
 	pTmpDC.SelectObject(oldBitmap);
@@ -153,4 +150,9 @@ void ImagePainter::DrawTransparentBitmap(CDC* pDC, int xStart, int yStart, int x
 bool ImagePainter::IsPointInImageRegion(CPoint point)
 {
 	return imageRegion.PtInRegion(point);
+}
+
+BITMAP ImagePainter::GetImageInfo()
+{
+	return imageInfo;
 }

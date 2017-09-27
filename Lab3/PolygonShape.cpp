@@ -9,6 +9,7 @@ PolygonShape::PolygonShape(std::vector<POINT> vertexes) : Shape(vertexes)
 {
 	CalculatePoints(vertexes);
 	region.CreatePolygonRgn(&points[0], points.size(), ALTERNATE);
+	shapeCenterPoint = GetShapeRect().CenterPoint();
 }
 
 PolygonShape::~PolygonShape()

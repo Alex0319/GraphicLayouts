@@ -1,19 +1,18 @@
 #include "stdafx.h"
 #include "ShapesManager.h"
-#include "PolygonShape.h"
-
 
 ShapesManager::ShapesManager()
 {
+	srand(time(0));
 }
 
 ShapesManager::ShapesManager(int uResourceId)
 {
+	srand(time(0));
 	shapeState = NOACTION;
 	imagePainter = new ImagePainter();
 	imagePainter->LoadImageFromResourceWithTransparency(uResourceId, RGB(0, 0, 0));
 }
-
 
 ShapesManager::~ShapesManager()
 {
@@ -22,21 +21,16 @@ ShapesManager::~ShapesManager()
 		delete imagePainter;
 }
 
-void ShapesManager::Draw(CDC* dc)
+void ShapesManager::Draw(CDC* dc, CRgn* drawingAreaRegion)
 {
-	CPen *oldPen = NULL;
-	CPen newPen(PS_SOLID, 3, RGB(0,0,0));
-	oldPen = (*dc).SelectObject(&newPen);
 	if(selectedShape != NULL)
-		selectedShape->Draw(dc, shapes);
-	if (oldPen != NULL)
-		(*dc).SelectObject(oldPen);
-	DeleteObject(newPen);
+		selectedShape->Draw(dc, shapes, drawingAreaRegion, 3);
 	for (auto it = shapes.begin(); it != shapes.end(); it++)
 	{
 		if ((*it) != selectedShape) 
-			(*it) -> Draw(dc, shapes);
+			(*it) -> Draw(dc, shapes, drawingAreaRegion);
 	}
+	DrawTurnIcon(dc);
 }
 
 void ShapesManager::AddShape(std::vector<POINT> vertex)
@@ -44,7 +38,22 @@ void ShapesManager::AddShape(std::vector<POINT> vertex)
 	shapes.push_back(new PolygonShape(vertex));
 }
 
-bool ShapesManager::CheckShapeSelect(POINT point)
+void ShapesManager::CreateAnimationShape(std::vector<POINT> vertex)
+{
+	if (animationShape == NULL)
+	{
+		animationShape = new AnimationShape(vertex);
+		shapes.push_back(animationShape);
+	}
+}
+
+void ShapesManager::ChangeAnimationShapeDrawing(CWnd* cWnd)
+{
+	if(!animationShape->ChangeDrawingState(cWnd));
+		selectedShape = NULL;
+}
+
+bool ShapesManager::CheckSelectedShape(POINT point)
 {
 	int maxLayout = 0;
 	Shape* prevSelectedShape = selectedShape;
@@ -63,7 +72,7 @@ bool ShapesManager::CheckShapeSelect(POINT point)
 
 bool ShapesManager::ChangeShapeState(Shape *prevSelectedShape, POINT point)
 {
-	if (selectedShape == NULL && prevSelectedShape != NULL && imagePainter->IsPointInImageRegion(point))
+	if (prevSelectedShape != NULL && imagePainter->IsPointInImageRegion(point))
 	{
 		selectedShape = prevSelectedShape;
 		shapeState = ROTATION;
@@ -76,13 +85,12 @@ bool ShapesManager::ChangeShapeState(Shape *prevSelectedShape, POINT point)
 			shapeState = MOTION;
 			return true;
 		}
-		else
-			shapeState = NOACTION;
+		shapeState = NOACTION;
 		return false;
 	}
 }
 
-void ShapesManager::ChangeSelectShapePosition(POINT point)
+void ShapesManager::ChangeSelectedShapePosition(POINT point)
 {
 	switch (shapeState)
 	{
@@ -93,18 +101,45 @@ void ShapesManager::ChangeSelectShapePosition(POINT point)
 	}
 }
 
+bool ShapesManager::ChangeSelectedShapeZoom(float zoom)
+{
+	if (selectedShape != NULL)
+	{
+		selectedShape->ChangeZoom(zoom);
+		return true;
+	}
+	return false;
+}
+
 void ShapesManager::DrawTurnIcon(CDC* dc)
 {
 	if (selectedShape != NULL) {
-		CRect rect = selectedShape->GetShapeRect();
-		imagePainter->DrawTransparentBitmap(dc, rect.left + rect.Width() / 2, rect.top);
+		CDC imageDC;
+		CBitmap bitmap;
+		CRect imageRect = selectedShape->GetShapeRect();
+		BITMAP imageInfo = imagePainter->GetImageInfo();
+		CRect rect(0, 0, imageInfo.bmWidth, imageInfo.bmHeight);
+		imageDC.CreateCompatibleDC(dc);
+		bitmap.CreateCompatibleBitmap(dc, imageInfo.bmWidth, imageInfo.bmHeight);
+		CBitmap* oldBitmap = imageDC.SelectObject(&bitmap);
+		imageDC.FillRect(rect, WHITE_BRUSH);
+
+		imagePainter->DrawTransparentBitmap(&imageDC, imageRect.left + (imageRect.Width() - imageInfo.bmWidth) / 2, imageRect.top - imageInfo.bmHeight - 5);
+		dc->BitBlt(imageRect.left + (imageRect.Width() - imageInfo.bmWidth) / 2, imageRect.top - imageInfo.bmHeight - 5, imageInfo.bmWidth, imageInfo.bmHeight, &imageDC, 0, 0, SRCCOPY);
+
+		imageDC.SelectObject(oldBitmap);
+		bitmap.DeleteObject();
+		imageDC.DeleteDC();
 	}
 }
 
 void ShapesManager::ClearShapesVector()
 {
 	for (auto it = shapes.begin(); it != shapes.end(); it++)
-		delete *it;
+		if(*it != animationShape)
+			delete *it;
+	if(animationShape != NULL)
+		delete animationShape;
 	if (!shapes.empty())
 		std::vector<Shape*>().swap(shapes);
 }

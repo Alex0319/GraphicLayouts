@@ -187,6 +187,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CMainApp.h" />
+    <ClInclude Include="DrawingAreaManager.h" />
     <ClInclude Include="ImagePainter.h" />
     <ClInclude Include="MainDlg.h" />
     <ClInclude Include="PolygonShape.h" />
@@ -195,9 +196,11 @@
     <ClInclude Include="ShapesManager.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="AnimationShape.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CMainApp.cpp" />
+    <ClCompile Include="DrawingAreaManager.cpp" />
     <ClCompile Include="ImagePainter.cpp" />
     <ClCompile Include="MainDlg.cpp" />
     <ClCompile Include="PolygonShape.cpp" />
@@ -209,11 +212,13 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="AnimationShape.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Lab3.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="res\idc_size.bin" />
     <None Include="res\Lab3.rc2" />
   </ItemGroup>
   <ItemGroup>

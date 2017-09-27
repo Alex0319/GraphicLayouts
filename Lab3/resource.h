@@ -7,6 +7,8 @@
 #define IDS_ABOUTBOX                    101
 #define IDD_LAB3_DIALOG                 102
 #define IDS_ADDSHAPE                    102
+#define IDS_ADDANIMATIONSHAPE           103
+#define IDS_REMOVEANIMATION             104
 #define IDR_MAINFRAME                   128
 #define IDR_MAIN_MENU                   130
 #define IDB_TURN                        131
@@ -15,13 +17,16 @@
 #define ID_ABOUT                        32772
 #define ID_32773                        32773
 #define ID_ADDSHAPE                     32774
+#define ID_Menu                         32775
+#define ID_ADDANIMATIONSHAPE            32776
+#define ID_32777                        32777
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        132
-#define _APS_NEXT_COMMAND_VALUE         32775
+#define _APS_NEXT_RESOURCE_VALUE        134
+#define _APS_NEXT_COMMAND_VALUE         32778
 #define _APS_NEXT_CONTROL_VALUE         1003
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
